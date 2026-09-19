@@ -1,6 +1,6 @@
-const crypto = require("crypto");
+import crypto from "node:crypto";
 
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, headers: { Allow: "POST" }, body: "Method Not Allowed" };
   }

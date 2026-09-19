@@ -1,4 +1,4 @@
-exports.handler = async (event) => {
+export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, headers: { Allow: "POST" }, body: "Method Not Allowed" };
   }
@@ -17,8 +17,8 @@ exports.handler = async (event) => {
   const amount = Number(input.amount);
   const email = String(input.email || "").trim();
   const name = String(input.name || "").trim();
-    const paymentReference = String(input.paymentReference || "").trim();
-    if (!Number.isInteger(amount) || amount < 100 || amount > 100000000 || !email || !name || !paymentReference) {
+  const paymentReference = String(input.paymentReference || "").trim();
+  if (!Number.isInteger(amount) || amount < 100 || amount > 100000000 || !email || !name || !paymentReference) {
     return json(400, { error: "A valid sponsor name, email, and amount are required." });
   }
 
@@ -30,10 +30,10 @@ exports.handler = async (event) => {
     "line_items[0][price_data][product_data][description]": "Donation supporting Team 25795 Architechs",
     "line_items[0][price_data][unit_amount]": String(amount),
     "line_items[0][quantity]": "1",
-      client_reference_id: paymentReference,
-      "metadata[payment_reference]": paymentReference,
-    "customer_creation": "always",
-    "customer_email": email,
+    client_reference_id: paymentReference,
+    "metadata[payment_reference]": paymentReference,
+    customer_creation: "always",
+    customer_email: email,
     "metadata[sponsor_name]": name,
     "metadata[sponsor_email]": email,
     success_url: `${origin}/sponsorship?payment=success`,
