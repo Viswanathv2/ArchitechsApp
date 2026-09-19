@@ -1,0 +1,30 @@
+/*
+  Optional background variant: single centered logo watermark.
+  To compare manually, copy just the .background-art and .dark-theme .background-art
+  blocks from this file into src/index.css (replacing the current ones).
+*/
+
+.background-art {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background-image:
+    linear-gradient(180deg, rgba(255, 248, 240, 0.80), rgba(255, 248, 240, 0.70)),
+    url("/team-logo.jpg");
+  background-repeat: no-repeat, no-repeat;
+  background-size: auto, min(56vmin, 640px);
+  background-position: center center, center center;
+  opacity: 0.16;
+}
+
+.dark-theme .background-art {
+  opacity: 0.12;
+  filter: saturate(0.92) brightness(0.78);
+  background-image:
+    linear-gradient(180deg, rgba(6, 9, 18, 0.74), rgba(6, 9, 18, 0.68)),
+    url("/team-logo.jpg");
+  background-repeat: no-repeat, no-repeat;
+  background-size: auto, min(56vmin, 640px);
+  background-position: center center, center center;
+}

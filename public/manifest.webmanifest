@@ -1,0 +1,25 @@
+{
+  "name": "Architechs FTC Team Portal",
+  "short_name": "Architechs",
+  "description": "Team 25795 Architechs member portal",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f0e8",
+  "theme_color": "#18202a",
+  "icons": [
+    {
+      "src": "/team-logo.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/team-logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
