@@ -90,9 +90,9 @@ function achievementMedia(a) {
 
 // Member Portal internal resource cards (logged-in only).
 const MEMBER_RESOURCES = [
-  { icon: "📅", title: "Build Calendar", desc: "Meeting dates, deadlines, and competition schedule.", to: "/schedule" },
-  { icon: "🔩", title: "Parts Inventory", desc: "What we have, what we need, and where it lives.", to: "/learning" },
-  { icon: "📓", title: "Engineering Notebook", desc: "Design decisions, iterations, and documentation.", to: "/learning" },
+  { icon: "📋", title: "Tasks", desc: "Track CAD, Build, Code, and Portfolio work.", to: "/schedule" },
+  { icon: "🔩", title: "Parts Inventory", desc: "What we have, what we need, and where it lives.", to: "/parts-inventory" },
+  { icon: "📓", title: "Engineering Notebook", desc: "Design decisions, iterations, and documentation.", to: "/portfolio" },
   { icon: "🔍", title: "Scouting", desc: "Match notes and alliance scouting data.", to: "/learning" }
 ];
 

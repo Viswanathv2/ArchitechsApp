@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { defaultNavItems } from "../config/dashboardDefaults";
+import { memberHubItems } from "../config/memberHubItems";
 import { useAuth } from "../context/AuthContext";
+import { NavLink } from "react-router-dom";
 
 function mergeMenuItems(rows) {
   if (!Array.isArray(rows) || rows.length === 0) {
@@ -26,7 +28,7 @@ function mergeMenuItems(rows) {
 export default function DashboardPage() {
   const { profile } = useAuth();
   const [items, setItems] = useState(defaultNavItems);
-  const [selectedId, setSelectedId] = useState(defaultNavItems[0].id);
+  const [selectedId] = useState(defaultNavItems[0].id);
   const [announcements, setAnnouncements] = useState([]);
   const [announcementsOpen, setAnnouncementsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,31 @@ export default function DashboardPage() {
           <h1>Welcome, {profile.displayName}</h1>
         </header>
 
-        <article className="content-card">
+        <article className="content-card member-hub-home">
+          <h2>Member Hub</h2>
+          <nav aria-label="Member Hub options">
+            <ul className="member-hub-home-list">
+              {memberHubItems.map((item) => (
+                <li key={item.to}>
+                  <NavLink
+                    to={item.to}
+                    className={({ isActive }) => (isActive ? "active" : undefined)}
+                    end={item.to === "/dashboard"}
+                  >
+                    {item.label}
+                  </NavLink>
+                </li>
+              ))}
+              {(profile.isCoach || profile.isPortalAdmin || profile.isAdmin) ? (
+                <li>
+                  <NavLink to="/admin">Admin Activities</NavLink>
+                </li>
+              ) : null}
+            </ul>
+          </nav>
+        </article>
+
+        <article className="content-card announcements-card">
           <button
             type="button"
             className="announcements-toggle"
@@ -115,7 +141,7 @@ export default function DashboardPage() {
           ) : null}
         </article>
 
-        <article className="content-card">
+        <article className="content-card dashboard-message-card">
           <h3>{selectedItem.title}</h3>
           <p>{selectedItem.content}</p>
           {(profile.isCoach || profile.isPortalAdmin) ? (

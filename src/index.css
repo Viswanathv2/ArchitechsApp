@@ -35,6 +35,7 @@
 body {
   margin: 0;
   min-height: 100vh;
+  width: 100%;
   font-family: var(--font-sans);
   color: var(--ink);
   background: var(--bg);
@@ -44,6 +45,7 @@ body {
 
 #root {
   min-height: 100vh;
+  width: 100%;
   display: flex;
   flex-direction: column;
   padding-top: 10px;
@@ -1890,11 +1892,13 @@ input[type="date"].task-input::-webkit-calendar-picker-indicator {
 
 
 main {
+  width: 100%;
   min-height: 0;
   padding: 10px 14px 20px;
 }
 
 .route-fade {
+  width: 100%;
   animation: route-enter 220ms ease;
 }
 
@@ -1910,7 +1914,7 @@ main {
 }
 
 .landing-page {
-  width: calc(100% - 24px);
+  width: 100%;
   margin: 0 auto;
 }
 
@@ -1940,6 +1944,7 @@ main {
 
 .landing-container {
   width: 100%;
+  min-width: 0;
   max-width: none;
   margin: 0 auto;
   display: grid;
@@ -3086,11 +3091,56 @@ textarea {
   text-transform: uppercase;
 }
 
+.member-hub-home h2 {
+  margin: 0 0 14px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+}
+
+.member-hub-home-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+}
+
+.member-hub-home-list a {
+  display: block;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  color: var(--ink);
+  padding: 11px 12px;
+  text-decoration: none;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
+}
+
+.member-hub-home-list a:hover,
+.member-hub-home-list a.active {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.dashboard-message-card {
+  order: 2;
+}
+
+.announcements-card {
+  order: 3;
+}
+
 .logged-layout {
   display: grid;
-  grid-template-columns: 260px 1fr;
-  gap: 14px;
-  width: calc(100% - 24px);
+  grid-template-columns: 1fr;
+  width: 100%;
   margin: 10px auto 0;
   min-height: 0;
 }
@@ -3190,7 +3240,13 @@ textarea {
 }
 
 .logged-main {
+  width: 100%;
   min-width: 0;
+}
+
+.logged-main .landing-page,
+.logged-main .app-shell-page {
+  width: 100%;
 }
 
 .dashboard-learning-shell {
@@ -3237,7 +3293,7 @@ textarea {
 
   .logged-layout {
     grid-template-columns: 1fr;
-    width: min(980px, calc(100% - 18px));
+    width: 100%;
     margin-top: 8px;
   }
 
