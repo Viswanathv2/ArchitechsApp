@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const AUTH_REGISTER_COOLDOWN_SECONDS = 45;
+const AUTH_REGISTER_COOLDOWN_SECONDS = 60;
 const AUTH_LOGIN_COOLDOWN_SECONDS = 10;
 
 function isRateLimitError(error) {
@@ -33,6 +33,13 @@ function loginErrorMessage(error) {
   return `Login failed. ${error?.message || "Please try again."}`;
 }
 
+function registrationErrorMessage(error) {
+  if (isRateLimitError(error)) {
+    return "Registration email limit reached. Please wait before trying again, or ask an administrator to configure Supabase custom SMTP.";
+  }
+  return `Registration failed. ${error?.message || "Please try again."}`;
+}
+
 export default function LoginPage() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -43,13 +50,11 @@ export default function LoginPage() {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const [cooldownMode, setCooldownMode] = useState("login");
-  const [clock, setClock] = useState(Date.now());
 
   const isRegister = mode === "register";
-  const now = clock;
-  const remaining = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+  const remaining = cooldownMode === mode ? cooldownRemaining : 0;
   const inCooldown = remaining > 0 && cooldownMode === mode;
 
   const submitText = useMemo(() => {
@@ -60,7 +65,9 @@ export default function LoginPage() {
   }, [inCooldown, remaining, isRegister]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => setClock(Date.now()), 1000);
+    const timer = window.setInterval(() => {
+      setCooldownRemaining((current) => Math.max(0, current - 1));
+    }, 1000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -84,7 +91,7 @@ export default function LoginPage() {
     const displayName = form.displayName.trim();
 
     if (!/^\S+@\S+\.\S+$/.test(email)) {
-      setError("Login failed. Please enter a valid email address.");
+      setError(`${isRegister ? "Registration" : "Login"} failed. Please enter a valid email address.`);
       return;
     }
 
@@ -93,21 +100,21 @@ export default function LoginPage() {
     try {
       if (isRegister) {
         await register(email, password, displayName || "Member");
-        setSuccess("Account created. Now log in with the same email and password.");
         setForm((v) => ({ ...v, password: "" }));
         switchMode("login");
+        setSuccess("Account created. Check your email to confirm the account, then log in.");
       } else {
         await login(email, password);
         const destination = location.state?.from || "/dashboard";
         navigate(destination, { replace: true });
       }
     } catch (err) {
-      setError(isRegister ? (err?.message || "Registration failed. Please try again.") : loginErrorMessage(err));
+      setError(isRegister ? registrationErrorMessage(err) : loginErrorMessage(err));
 
       if (isRateLimitError(err)) {
         const waitSeconds = isRegister ? AUTH_REGISTER_COOLDOWN_SECONDS : AUTH_LOGIN_COOLDOWN_SECONDS;
         setCooldownMode(mode);
-        setCooldownUntil(Date.now() + waitSeconds * 1000);
+        setCooldownRemaining(waitSeconds);
       }
     } finally {
       setBusy(false);

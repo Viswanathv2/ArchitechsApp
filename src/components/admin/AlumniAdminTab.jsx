@@ -7,7 +7,7 @@ export default function AlumniAdminTab() {
   const [alumni, setAlumni] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
-  const [formData, setFormData] = useState({ name: "", role: "", year: "", bio: "", image_url: "" });
+  const [formData, setFormData] = useState({ name: "", role: "", year: "", bio: "", image_url: "", email: "" });
   const [editingId, setEditingId] = useState(null);
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export default function AlumniAdminTab() {
 
   async function loadAlumni() {
     setLoading(true);
-    const { data, error } = await supabase.from("alumni").select("id,name,role,year,bio,image_url").order("name", { ascending: true });
+    const { data, error } = await supabase.from("alumni").select("id,name,role,year,bio,image_url,email").order("name", { ascending: true });
     if (!error && data) {
       setAlumni(data);
     }
@@ -30,14 +30,15 @@ export default function AlumniAdminTab() {
       role: member.role || "",
       year: member.year || "",
       bio: member.bio || "",
-      image_url: member.image_url || ""
+      image_url: member.image_url || "",
+      email: member.email || ""
     });
     setStatus({ type: "", message: "" });
   }
 
   function cancelEdit() {
     setEditingId(null);
-    setFormData({ name: "", role: "", year: "", bio: "", image_url: "" });
+    setFormData({ name: "", role: "", year: "", bio: "", image_url: "", email: "" });
     setStatus({ type: "", message: "" });
   }
 
@@ -57,7 +58,7 @@ export default function AlumniAdminTab() {
     } else {
       setStatus({ type: "success", message: editingId ? "Alumni member updated!" : "Alumni member added!" });
       setEditingId(null);
-      setFormData({ name: "", role: "", year: "", bio: "", image_url: "" });
+      setFormData({ name: "", role: "", year: "", bio: "", image_url: "", email: "" });
       loadAlumni();
     }
   }
@@ -89,6 +90,8 @@ export default function AlumniAdminTab() {
         <RoleMultiSelect id="alumniRole" value={formData.role} onChange={(role) => setFormData((p) => ({ ...p, role }))} />
         <label htmlFor="alumniYear">Year</label>
         <input id="alumniYear" value={formData.year} onChange={(e) => setFormData((p) => ({ ...p, year: e.target.value }))} />
+        <label htmlFor="alumniEmail">Login Email</label>
+        <input id="alumniEmail" type="email" value={formData.email} onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))} />
         <label htmlFor="alumniBio">Bio</label>
         <textarea id="alumniBio" value={formData.bio} onChange={(e) => setFormData((p) => ({ ...p, bio: e.target.value }))} />
         <label>Photo</label>

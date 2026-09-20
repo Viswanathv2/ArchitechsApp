@@ -4821,7 +4821,7 @@ a.sponsor-card:hover {
 
 .user-management-card {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: minmax(180px, 1fr) auto minmax(220px, auto) auto;
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
@@ -4846,8 +4846,30 @@ a.sponsor-card:hover {
   color: var(--muted);
 }
 
+.user-email {
+  margin: 3px 0 0;
+  color: var(--ink);
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
 .user-management-role {
   text-align: center;
+}
+
+.user-management-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.user-management-link select {
+  min-width: 160px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
 }
 
 .role-select {
@@ -4889,6 +4911,29 @@ a.sponsor-card:hover {
 .user-management-actions {
   display: flex;
   gap: 6px;
+}
+
+@media (max-width: 720px) {
+  .user-management-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .user-management-role {
+    text-align: left;
+  }
+
+  .user-management-link,
+  .user-management-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .user-management-link select,
+  .user-management-link button,
+  .user-management-actions button {
+    width: 100%;
+  }
 }
 
 .home-v2-page {
@@ -5512,6 +5557,14 @@ a.sponsor-card:hover {
   .resource-upload-row > * {
     width: 100%;
     min-width: 0;
+  }
+
+  .issue-member-filter {
+    flex: none;
+    width: 100%;
+    max-width: none;
+    min-height: 42px;
+    margin-left: 0;
   }
 
   .task-add-grid {

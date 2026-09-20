@@ -6,6 +6,12 @@ import { useAuth } from "../context/AuthContext";
 import { supabase } from "../lib/supabase";
 
 const emptyForm = { roles: "", grade: "", bio: "", image_url: "" };
+const ROSTERS = [
+  { table: "team_members", type: "member", label: "Team Member", roleField: "roles", detailField: "grade" },
+  { table: "coaches", type: "coach", label: "Coach", roleField: "role" },
+  { table: "mentors", type: "mentor", label: "Mentor", roleField: "role" },
+  { table: "alumni", type: "alumni", label: "Alumni", roleField: "role", detailField: "year" }
+];
 
 export default function ProfilePage() {
   const { user, profile } = useAuth();
@@ -27,12 +33,29 @@ export default function ProfilePage() {
 
   async function loadMembers() {
     setLoading(true);
-    const { data } = await supabase
-      .from("team_members")
-      .select("id,name,roles,grade,bio,image_url,email")
-      .order("name", { ascending: true });
-
-    const list = Array.isArray(data) ? data : [];
+    const responses = await Promise.all(ROSTERS.map((roster) => {
+      const columns = [...new Set([
+        "id", "name", roster.roleField, roster.detailField, "bio", "image_url", "email"
+      ].filter(Boolean))].join(",");
+      return supabase
+        .from(roster.table)
+        .select(columns)
+        .order("name", { ascending: true });
+    }));
+    const list = responses.flatMap((response, index) => {
+      const roster = ROSTERS[index];
+      return (response.data || []).map((person) => ({
+        ...person,
+        key: `${roster.table}:${person.id}`,
+        table: roster.table,
+        type: roster.type,
+        typeLabel: roster.label,
+        roleField: roster.roleField,
+        detailField: roster.detailField,
+        roles: person[roster.roleField] || "",
+        grade: roster.detailField ? (person[roster.detailField] || "") : ""
+      }));
+    });
     setMembers(list);
 
     if (isManager) {
@@ -56,7 +79,7 @@ export default function ProfilePage() {
   }
 
   function applyMember(member) {
-    setSelectedId(member.id);
+    setSelectedId(member.key);
     setFormData({
       roles: member.roles || "",
       grade: member.grade || "",
@@ -68,28 +91,31 @@ export default function ProfilePage() {
   }
 
   function onSelectMember(id) {
-    const member = members.find((m) => m.id === id);
+    const member = members.find((m) => m.key === id);
     if (member) applyMember(member);
   }
 
   const selectedMember = useMemo(
-    () => members.find((m) => m.id === selectedId) || null,
+    () => members.find((m) => m.key === selectedId) || null,
     [members, selectedId]
   );
 
   async function save() {
-    if (!selectedId) return;
+    if (!selectedMember) return;
     setSaving(true);
     setStatus({ type: "", message: "" });
+    const payload = {
+      [selectedMember.roleField]: formData.roles,
+      bio: formData.bio,
+      image_url: formData.image_url
+    };
+    if (selectedMember.detailField) {
+      payload[selectedMember.detailField] = formData.grade;
+    }
     const { data, error } = await supabase
-      .from("team_members")
-      .update({
-        roles: formData.roles,
-        grade: formData.grade,
-        bio: formData.bio,
-        image_url: formData.image_url
-      })
-      .eq("id", selectedId)
+      .from(selectedMember.table)
+      .update(payload)
+      .eq("id", selectedMember.id)
       .select("id");
     setSaving(false);
     if (error) {
@@ -103,7 +129,7 @@ export default function ProfilePage() {
       });
     } else {
       setStatus({ type: "success", message: "Profile saved!" });
-      setMembers((prev) => prev.map((m) => (m.id === selectedId ? { ...m, ...formData } : m)));
+      setMembers((prev) => prev.map((m) => (m.key === selectedId ? { ...m, ...formData } : m)));
     }
   }
 
@@ -133,7 +159,7 @@ export default function ProfilePage() {
                 onChange={(e) => onSelectMember(e.target.value)}
               >
                 {members.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
+                  <option key={m.key} value={m.key}>{m.name} ({m.typeLabel})</option>
                 ))}
               </select>
             </div>
@@ -152,7 +178,7 @@ export default function ProfilePage() {
                 <label>Photo</label>
                 <ImageUpload
                   value={formData.image_url}
-                  folder="team"
+                  folder={selectedMember?.type || "team"}
                   onChange={(url) => setFormData((p) => ({ ...p, image_url: url }))}
                 />
               </div>
@@ -166,14 +192,18 @@ export default function ProfilePage() {
                 />
               </div>
 
-              <div className="profile-field">
-                <label htmlFor="profileGrade">Grade</label>
-                <input
-                  id="profileGrade"
-                  value={formData.grade}
-                  onChange={(e) => setFormData((p) => ({ ...p, grade: e.target.value }))}
-                />
-              </div>
+              {selectedMember?.detailField ? (
+                <div className="profile-field">
+                  <label htmlFor="profileGrade">
+                    {selectedMember.detailField === "year" ? "Year" : "Grade"}
+                  </label>
+                  <input
+                    id="profileGrade"
+                    value={formData.grade}
+                    onChange={(e) => setFormData((p) => ({ ...p, grade: e.target.value }))}
+                  />
+                </div>
+              ) : null}
 
               <div className="profile-field">
                 <label htmlFor="profileBio">Bio</label>

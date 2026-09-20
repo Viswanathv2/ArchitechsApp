@@ -64,9 +64,18 @@ export default function InterestRequestsTab() {
 
   async function deleteRow(id) {
     if (!confirm("Delete this request? This cannot be undone.")) return;
-    const { error } = await supabase.from("interest_submissions").delete().eq("id", id);
+    const { data, error } = await supabase
+      .from("interest_submissions")
+      .delete()
+      .eq("id", id)
+      .select("id");
     if (error) {
       setStatus({ type: "error", message: `Failed: ${error.message}` });
+    } else if (!data?.length) {
+      setStatus({
+        type: "error",
+        message: "Request was not deleted. Apply the latest database migration and try again."
+      });
     } else {
       setStatus({ type: "success", message: "Request deleted." });
       setItems((prev) => prev.filter((it) => it.id !== id));

@@ -40,7 +40,7 @@ async function loadProfile(user) {
 async function loadAvatar(email) {
   const target = String(email || "").trim().toLowerCase();
   if (!target) return "";
-  for (const table of ["team_members", "coaches", "mentors"]) {
+  for (const table of ["team_members", "coaches", "mentors", "alumni"]) {
     const { data } = await supabase
       .from(table)
       .select("image_url,email")

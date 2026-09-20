@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabase";
 
 const ROLE_OPTIONS = ["member", "coach", "admin"];
+const ROSTERS = [
+  { table: "team_members", label: "Member" },
+  { table: "coaches", label: "Coach" },
+  { table: "mentors", label: "Mentor" },
+  { table: "alumni", label: "Alumni" }
+];
 
 function getRoleLabel(role) {
   return role === "admin" ? "Admin" : role === "coach" ? "Coach" : "Member";
@@ -15,10 +21,12 @@ function userRole(profile) {
 
 export default function UserManagementAdminTab() {
   const [users, setUsers] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [editingId, setEditingId] = useState(null);
   const [editingRole, setEditingRole] = useState("member");
+  const [memberSelections, setMemberSelections] = useState({});
 
   useEffect(() => {
     loadUsers();
@@ -26,18 +34,88 @@ export default function UserManagementAdminTab() {
 
   async function loadUsers() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("user_id,display_name,created_at,is_portal_admin,is_coach")
-      .order("created_at", { ascending: false });
+    const [usersResponse, ...rosterResponses] = await Promise.all([
+      supabase.rpc("list_registered_users"),
+      ...ROSTERS.map(({ table }) => (
+        supabase.from(table).select("id,name,email").order("name", { ascending: true })
+      ))
+    ]);
 
-    if (error) {
-      setStatus({ type: "error", message: `Failed to load users: ${error.message}` });
+    const rosterError = rosterResponses.find((response) => response.error)?.error;
+    if (usersResponse.error || rosterError) {
+      const message = usersResponse.error?.message || rosterError?.message;
+      setStatus({ type: "error", message: `Failed to load users: ${message}` });
       setUsers([]);
+      setMembers([]);
     } else {
-      setUsers(Array.isArray(data) ? data : []);
+      const nextUsers = Array.isArray(usersResponse.data) ? usersResponse.data : [];
+      const nextMembers = rosterResponses.flatMap((response, index) => (
+        (response.data || []).map((person) => ({
+          ...person,
+          table: ROSTERS[index].table,
+          typeLabel: ROSTERS[index].label,
+          key: `${ROSTERS[index].table}:${person.id}`
+        }))
+      ));
+      setUsers(nextUsers);
+      setMembers(nextMembers);
+      setMemberSelections(Object.fromEntries(nextUsers.map((user) => {
+        const email = String(user.email || "").trim().toLowerCase();
+        const linked = nextMembers.find(
+          (member) => String(member.email || "").trim().toLowerCase() === email
+        );
+        return [user.user_id, linked?.key || ""];
+      })));
     }
     setLoading(false);
+  }
+
+  async function linkMember(user) {
+    const memberKey = memberSelections[user.user_id];
+    if (!memberKey) {
+      setStatus({ type: "error", message: "Choose a team profile to link." });
+      return;
+    }
+    const selectedMember = members.find((member) => member.key === memberKey);
+    if (!selectedMember) return;
+
+    const duplicate = members.find((member) => (
+      member.key !== memberKey
+      && String(member.email || "").trim().toLowerCase() === String(user.email || "").trim().toLowerCase()
+    ));
+    if (duplicate) {
+      setStatus({ type: "error", message: `That login email is already linked to ${duplicate.name}.` });
+      return;
+    }
+
+    const selectedEmail = String(selectedMember?.email || "").trim().toLowerCase();
+    const otherUser = selectedEmail
+      ? users.find((item) => (
+          item.user_id !== user.user_id
+          && String(item.email || "").trim().toLowerCase() === selectedEmail
+        ))
+      : null;
+    if (otherUser) {
+      setStatus({
+        type: "error",
+        message: `${selectedMember.name} is already linked to ${otherUser.display_name || otherUser.email}.`
+      });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from(selectedMember.table)
+      .update({ email: user.email })
+      .eq("id", selectedMember.id)
+      .select("id");
+
+    if (error || !data?.length) {
+      setStatus({ type: "error", message: `Failed to link profile: ${error?.message || "No row was updated."}` });
+      return;
+    }
+
+    setStatus({ type: "success", message: "Team profile linked. The user can now edit their profile." });
+    loadUsers();
   }
 
   function startEditRole(user) {
@@ -53,11 +131,10 @@ export default function UserManagementAdminTab() {
 
   async function saveRole(user) {
     setStatus({ type: "", message: "" });
-    const { error } = await supabase.from("profiles").update({
-      is_portal_admin: editingRole === "admin",
-      is_coach: editingRole === "coach",
-      updated_at: new Date().toISOString()
-    }).eq("user_id", user.user_id);
+    const { error } = await supabase.rpc("set_registered_user_role", {
+      target_user_id: user.user_id,
+      target_role: editingRole
+    });
 
     if (error) {
       setStatus({ type: "error", message: `Failed to update role: ${error.message}` });
@@ -91,6 +168,7 @@ export default function UserManagementAdminTab() {
                 <div className="user-management-info">
                   <div>
                     <h3>{user.display_name || "Unknown User"}</h3>
+                    {user.email ? <p className="user-email">{user.email}</p> : null}
                     <p className="user-created">
                       Registered: {new Date(user.created_at).toLocaleDateString()}
                     </p>
@@ -113,6 +191,27 @@ export default function UserManagementAdminTab() {
                       {getRoleLabel(currentRole)}
                     </span>
                   )}
+                </div>
+
+                <div className="user-management-link">
+                  <select
+                    aria-label={`Team profile for ${user.display_name || user.email}`}
+                    value={memberSelections[user.user_id] || ""}
+                    onChange={(e) => setMemberSelections((current) => ({
+                      ...current,
+                      [user.user_id]: e.target.value
+                    }))}
+                  >
+                    <option value="">Select team profile</option>
+                    {members.map((member) => (
+                      <option key={member.key} value={member.key}>
+                        {member.name} ({member.typeLabel})
+                      </option>
+                    ))}
+                  </select>
+                  <button type="button" className="admin-edit-btn" onClick={() => linkMember(user)}>
+                    Link Profile
+                  </button>
                 </div>
 
                 <div className="user-management-actions">
