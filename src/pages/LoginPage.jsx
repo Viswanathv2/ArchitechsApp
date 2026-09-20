@@ -17,6 +17,22 @@ function isRateLimitError(error) {
   );
 }
 
+function loginErrorMessage(error) {
+  const code = String(error?.code || "").toLowerCase();
+  const message = String(error?.message || "").toLowerCase();
+
+  if (code.includes("email_not_confirmed") || message.includes("email not confirmed")) {
+    return "Login failed. Confirm your email address before logging in.";
+  }
+  if (code.includes("user_not_found") || code.includes("email_not_found")) {
+    return "Login failed. This email address does not exist.";
+  }
+  if (code.includes("invalid_credentials") || message.includes("invalid login credentials")) {
+    return "Login failed. The email address or password is incorrect.";
+  }
+  return `Login failed. ${error?.message || "Please try again."}`;
+}
+
 export default function LoginPage() {
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -26,6 +42,7 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState(0);
   const [cooldownMode, setCooldownMode] = useState("login");
   const [clock, setClock] = useState(Date.now());
@@ -66,6 +83,11 @@ export default function LoginPage() {
     const password = form.password;
     const displayName = form.displayName.trim();
 
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setError("Login failed. Please enter a valid email address.");
+      return;
+    }
+
     setBusy(true);
 
     try {
@@ -80,7 +102,7 @@ export default function LoginPage() {
         navigate(destination, { replace: true });
       }
     } catch (err) {
-      setError(err?.message || "Something went wrong. Please try again.");
+      setError(isRegister ? (err?.message || "Registration failed. Please try again.") : loginErrorMessage(err));
 
       if (isRateLimitError(err)) {
         const waitSeconds = isRegister ? AUTH_REGISTER_COOLDOWN_SECONDS : AUTH_LOGIN_COOLDOWN_SECONDS;
@@ -145,17 +167,26 @@ export default function LoginPage() {
             <label htmlFor="password">Password</label>
             <input
               id="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               value={form.password}
               onChange={(e) => setForm((v) => ({ ...v, password: e.target.value }))}
               placeholder="Enter your password"
               required
             />
+            <label className="password-visibility" htmlFor="showPassword">
+              <input
+                id="showPassword"
+                type="checkbox"
+                checked={showPassword}
+                onChange={(e) => setShowPassword(e.target.checked)}
+              />
+              Show password
+            </label>
 
             <button type="submit" className="admin-save-btn" disabled={busy || inCooldown}>
               {submitText}
             </button>
-            <p className="error">{error}</p>
+            <p className="error" role={error ? "alert" : undefined}>{error}</p>
             <p className="success">{success}</p>
           </form>
         </section>

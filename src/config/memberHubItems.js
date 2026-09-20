@@ -1,5 +1,4 @@
 export const memberHubItems = [
-  { to: "/dashboard", label: "Overview" },
   { to: "/schedule", label: "Tasks" },
   { to: "/issues", label: "Issues" },
   { to: "/outreaches", label: "Outreaches" },

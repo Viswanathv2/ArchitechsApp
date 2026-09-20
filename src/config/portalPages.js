@@ -10,8 +10,8 @@ export const portalDefaults = {
     body: "Share your team story and milestones here."
   },
   team: {
-    title: "Team Members",
-    subtitle: "Team 25795 - Architechs",
+    title: null,
+    subtitle: null,
     body: "Introduce your team members here."
   },
   schedule: {

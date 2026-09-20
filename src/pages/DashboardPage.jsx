@@ -81,7 +81,6 @@ export default function DashboardPage() {
         </header>
 
         <article className="content-card member-hub-home">
-          <h2>Member Hub</h2>
           <nav aria-label="Member Hub options">
             <ul className="member-hub-home-list">
               {memberHubItems.map((item) => (

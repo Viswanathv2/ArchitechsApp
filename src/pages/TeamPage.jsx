@@ -101,7 +101,7 @@ export default function TeamPage() {
     };
   }, []);
 
-  const subtitle = useMemo(() => page.subtitle || "Team 25795 - Architechs", [page.subtitle]);
+  const subtitle = useMemo(() => page.subtitle, [page.subtitle]);
 
   function renderGrid(items, { roleField, subLabel, emptyText }) {
     if (!items.length) {

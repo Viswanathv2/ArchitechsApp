@@ -10,7 +10,9 @@ export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [navigationMenuOpen, setNavigationMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
+  const navigationMenuRef = useRef(null);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark-theme", dark);
@@ -23,6 +25,9 @@ export default function Layout() {
       if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
         setUserMenuOpen(false);
       }
+      if (navigationMenuRef.current && !navigationMenuRef.current.contains(e.target)) {
+        setNavigationMenuOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
@@ -31,6 +36,7 @@ export default function Layout() {
   // Close the dropdown whenever the route changes
   useEffect(() => {
     setUserMenuOpen(false);
+    setNavigationMenuOpen(false);
   }, [location.pathname]);
 
   const roleDisplay = profile?.isAdmin ? "Admin" : profile?.isCoach ? "Coach" : "Member";
@@ -49,34 +55,51 @@ export default function Layout() {
               aria-label="Architechs home"
             >
               <span className="top-nav-brand-title">ARCHITECHS</span>
-              <span className="top-nav-brand-sub">#25795 · FTC</span>
+              <span className="top-nav-brand-sub">#25795</span>
             </NavLink>
           </li>
-          {navItems.map((item) => {
-            const targetPath = user && item.to === "/" ? "/dashboard" : item.to;
-            const isRootLike = targetPath === "/" || targetPath === "/dashboard";
-            return (
-              <li key={item.to}>
-                <NavLink
-                  to={targetPath}
-                  className={({ isActive }) => (isActive ? "active" : undefined)}
-                  end={isRootLike}
-                >
-                  {item.label}
-                </NavLink>
-              </li>
-            );
-          })}
-          {!user ? (
-            <li className="account-item">
-              <NavLink
-                to="/login"
-                className={({ isActive }) => (isActive ? "active" : undefined)}
-              >
-                {loading ? "Account" : "Login"}
-              </NavLink>
-            </li>
-          ) : (
+          <li className="navigation-menu" ref={navigationMenuRef}>
+            <button
+              type="button"
+              className="mobile-nav-toggle"
+              onClick={() => setNavigationMenuOpen((open) => !open)}
+              aria-haspopup="true"
+              aria-expanded={navigationMenuOpen}
+              aria-label="Open navigation menu"
+              title="Navigation"
+            >
+              <span aria-hidden="true">☰</span>
+            </button>
+            {navigationMenuOpen ? (
+              <div className="navigation-menu-dropdown" role="menu">
+                {navItems.map((item) => {
+                  const targetPath = user && item.to === "/" ? "/dashboard" : item.to;
+                  const isRootLike = targetPath === "/" || targetPath === "/dashboard";
+                  return (
+                    <NavLink
+                      key={item.to}
+                      to={targetPath}
+                      role="menuitem"
+                      className={({ isActive }) => (isActive ? "active" : undefined)}
+                      end={isRootLike}
+                    >
+                      {item.label}
+                    </NavLink>
+                  );
+                })}
+                {!user ? (
+                  <NavLink
+                    to="/login"
+                    role="menuitem"
+                    className={({ isActive }) => (isActive ? "active" : undefined)}
+                  >
+                    {loading ? "Account" : "Login"}
+                  </NavLink>
+                ) : null}
+              </div>
+            ) : null}
+          </li>
+          {user ? (
             <li className="user-menu account-item" ref={userMenuRef}>
               <button
                 type="button"
@@ -125,7 +148,7 @@ export default function Layout() {
                 </div>
               ) : null}
             </li>
-          )}
+          ) : null}
           <NotificationBell />
           <li className="theme-toggle-item">
             <button
