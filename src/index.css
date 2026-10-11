@@ -185,6 +185,11 @@ body {
   text-align: left;
 }
 
+.navigation-menu-dropdown a.active {
+  color: var(--accent-strong);
+  background: var(--surface-soft);
+}
+
 .top-nav-list a {
   display: inline-block;
   padding: 7px 12px;
@@ -1948,6 +1953,309 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 .task-status-badge.task-status-progress { background: color-mix(in srgb, #b06f00 14%, transparent); }
 .task-status-badge.task-status-blocked { background: color-mix(in srgb, #b3261e 14%, transparent); }
 .task-status-badge.task-status-pending { background: var(--surface-soft); }
+
+.my-tasks-page {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+
+.my-tasks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.my-tasks-header h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.my-tasks-eyebrow,
+.my-tasks-subtitle {
+  margin: 0 0 8px;
+  color: var(--muted);
+}
+
+.my-tasks-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.my-tasks-subtitle { margin: 8px 0 0; }
+
+.my-tasks-person {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.my-tasks-person img {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  border: 2px solid var(--border-soft);
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.my-tasks-list {
+  display: grid;
+  gap: 14px;
+}
+
+.my-tasks-group + .my-tasks-group { margin-top: 20px; }
+
+.my-tasks-group-toggle {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+}
+
+.my-tasks-group-toggle:hover { background: var(--surface-soft); }
+
+.my-tasks-chevron {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  margin-right: 4px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 160ms ease;
+}
+
+.my-tasks-chevron.is-open { transform: rotate(45deg); }
+
+.my-task {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.my-task-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.my-task-heading h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
+}
+
+.my-task-hours {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+
+.my-task-hours input {
+  width: 68px;
+  height: 40px;
+  box-sizing: border-box;
+  padding: 0 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: center;
+  vertical-align: middle;
+  appearance: textfield;
+}
+
+.my-task-hours input::-webkit-inner-spin-button,
+.my-task-hours input::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+}
+
+.my-task-hour-button {
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.my-task-hour-button:hover:not(:disabled) { background: var(--surface-soft); transform: translateY(-1px); }
+.my-task-hour-button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.my-task-hour-button:disabled { opacity: 0.55; cursor: wait; }
+.my-task-hour-up { color: #16834b; }
+.my-task-hour-down { color: #c03932; }
+.my-task-hours > span { color: var(--muted); font-size: 0.82rem; }
+
+.my-task-arrow {
+  position: relative;
+  display: block;
+  width: 18px;
+  height: 20px;
+}
+
+.my-task-arrow::before {
+  position: absolute;
+  left: 6px;
+  width: 6px;
+  height: 12px;
+  border-radius: 3px;
+  background: currentColor;
+  content: "";
+}
+
+.my-task-arrow-up::before { top: 6px; }
+.my-task-arrow-down::before { top: 2px; }
+
+.my-task-arrow-up::after,
+.my-task-arrow-down::after {
+  position: absolute;
+  left: 1px;
+  width: 0;
+  height: 0;
+  border-right: 8px solid transparent;
+  border-left: 8px solid transparent;
+  content: "";
+}
+
+.my-task-arrow-up::after {
+  top: 0;
+  border-bottom: 9px solid currentColor;
+}
+
+.my-task-arrow-down::after {
+  bottom: 0;
+  border-top: 9px solid currentColor;
+}
+
+.my-task-save-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--accent-strong);
+  border-radius: var(--radius);
+  background: var(--accent-strong);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.my-task-save-btn:disabled { opacity: 0.65; cursor: wait; }
+
+.my-task-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+  margin: 16px 0;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-soft);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.my-task-dates div { min-width: 100px; }
+.my-task-dates dt { color: var(--muted); font-size: 0.74rem; }
+.my-task-dates dd { margin: 3px 0 0; font-weight: 600; }
+.my-task-detail + .my-task-detail { margin-top: 16px; }
+.my-task-detail h3 { margin: 0 0 7px; font-size: 0.9rem; }
+.my-task-detail h3 span { color: var(--muted); font-weight: 400; }
+.my-task-notes { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.my-task-no-photos,
+.my-tasks-empty { margin: 0; color: var(--muted); }
+
+.my-tasks-empty-cheer {
+  min-height: 260px;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+  text-align: center;
+}
+
+.my-tasks-empty-cheer h2 {
+  max-width: 18ch;
+  margin: 0;
+  color: var(--accent-strong);
+  font-family: var(--font-display);
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1.05;
+  transform: rotate(-1deg);
+  animation: my-tasks-cheer-in 480ms ease-out both;
+}
+
+@keyframes my-tasks-cheer-in {
+  from { opacity: 0; transform: rotate(-4deg) scale(0.88); }
+  70% { opacity: 1; transform: rotate(1deg) scale(1.04); }
+  to { opacity: 1; transform: rotate(-1deg) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-tasks-empty-cheer h2 { animation: none; }
+}
+
+.my-task-photos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.my-task-photo {
+  width: 104px;
+  height: 88px;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  cursor: zoom-in;
+}
+
+.my-task-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+@media (max-width: 640px) {
+  .my-tasks-page { padding: 18px 10px 32px; }
+  .my-tasks-header { align-items: flex-start; gap: 12px; }
+  .my-tasks-header h1 { font-size: 1.8rem; }
+  .my-tasks-empty-cheer { min-height: 220px; }
+  .my-tasks-empty-cheer h2 { font-size: 1.9rem; }
+  .my-tasks-person { max-width: 42%; gap: 6px; font-size: 0.82rem; }
+  .my-tasks-person img { width: 46px; height: 46px; }
+  .my-task { padding: 14px; }
+  .my-task-heading { flex-direction: column; gap: 14px; }
+  .my-task-hours { flex-wrap: wrap; justify-content: flex-start; }
+}
 
 @media (max-width: 640px) {
   .task-add-grid {
@@ -5660,8 +5968,9 @@ a.sponsor-card:hover {
   .task-grid-table td:nth-child(4)::before { content: "Start date"; }
   .task-grid-table td:nth-child(5)::before { content: "End date"; }
   .task-grid-table td:nth-child(6)::before { content: "Status"; }
-  .task-grid-table td:nth-child(7)::before { content: "Notes"; }
-  .task-grid-table td:nth-child(8)::before { content: "Action"; }
+  .task-grid-table td:nth-child(7)::before { content: "Photos"; }
+  .task-grid-table td:nth-child(8)::before { content: "Notes"; }
+  .task-grid-table td:nth-child(9)::before { content: "Action"; }
 
   .issue-table td:nth-child(2)::before { content: "Issue"; }
   .issue-table td:nth-child(3)::before { content: "Type"; }

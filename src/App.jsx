@@ -4,6 +4,7 @@ import HomePage from "./pages/HomePage";
 import AboutPage from "./pages/AboutPage";
 import TeamPage from "./pages/TeamPage";
 import SchedulePage from "./pages/SchedulePage";
+import MyTasksPage from "./pages/MyTasksPage";
 import IssuesPage from "./pages/IssuesPage";
 import OutreachesPage from "./pages/OutreachesPage";
 import EventsPage from "./pages/EventsPage";
@@ -38,6 +39,14 @@ function App() {
               element={(
                 <ProtectedRoute>
                   <SchedulePage />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="my-tasks"
+              element={(
+                <ProtectedRoute>
+                  <MyTasksPage />
                 </ProtectedRoute>
               )}
             />

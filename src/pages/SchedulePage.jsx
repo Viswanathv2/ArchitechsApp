@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import RouteLoading from "../components/RouteLoading";
+import Lightbox from "../components/Lightbox";
 import { usePortalPage } from "../hooks/usePortalPage";
 import { useTrackVisit } from "../hooks/useTrackVisit";
 import { useAuth } from "../context/AuthContext";
@@ -12,6 +13,7 @@ const DEFAULT_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/
 
 const STATUS_OPTIONS = ["Not Started", "In Progress", "Completed", "Blocked"];
 const CLOSED_STATUS = "Completed";
+const IMAGE_BUCKET = "event-media";
 
 function statusClass(status) {
   switch (status) {
@@ -26,7 +28,7 @@ function statusClass(status) {
   }
 }
 
-const emptyTask = { memberKey: "", task: "", hours: "", start_date: "", end_date: "", status: "Not Started", notes: "" };
+const emptyTask = { memberKey: "", task: "", hours: "", start_date: "", end_date: "", status: "Not Started", notes: "", images: [] };
 
 const TASK_COLUMNS = [
   { key: "member_name", label: "Member" },
@@ -54,6 +56,10 @@ export default function SchedulePage() {
   const [showClosed, setShowClosed] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [taskImagesUploading, setTaskImagesUploading] = useState(false);
+  const [photosTaskId, setPhotosTaskId] = useState(null);
+  const [photosUploading, setPhotosUploading] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(null);
   const [notesTaskId, setNotesTaskId] = useState(null);
   const [notesDraft, setNotesDraft] = useState("");
   const tableRef = useResizableTable();
@@ -72,6 +78,8 @@ export default function SchedulePage() {
       if (e.key !== "Escape") return;
       setShowAddModal(false);
       setNotesTaskId(null);
+      setPhotosTaskId(null);
+      setLightboxIndex(null);
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -97,7 +105,7 @@ export default function SchedulePage() {
         .order("name", { ascending: true }),
       supabase
         .from("tasks")
-        .select("id,member_id,member_type,task,hours,notes,start_date,end_date,status,is_archived,archived_at,archived_by,created_at")
+        .select("id,member_id,member_type,task,hours,notes,images,start_date,end_date,status,is_archived,archived_at,archived_by,created_at")
         .order("created_at", { ascending: true })
     ]);
 
@@ -187,6 +195,37 @@ export default function SchedulePage() {
     return Boolean(email && myEmail && email === myEmail);
   }
 
+  async function uploadTaskImage(file) {
+    const ext = file.name.split(".").pop();
+    const safeName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+    const path = `tasks/${safeName}`;
+    const { error: uploadError } = await supabase.storage
+      .from(IMAGE_BUCKET)
+      .upload(path, file, { cacheControl: "3600", upsert: false });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path);
+    return { url: data.publicUrl, path };
+  }
+
+  async function addNewTaskImages(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length) return;
+    setTaskImagesUploading(true);
+    try {
+      const uploaded = [];
+      for (const file of files) uploaded.push(await uploadTaskImage(file));
+      setNewTask((current) => ({ ...current, images: [...current.images, ...uploaded] }));
+    } catch (error) {
+      setStatus({ type: "error", message: `Upload failed: ${error.message}` });
+    }
+    setTaskImagesUploading(false);
+  }
+
+  function removeNewTaskImage(index) {
+    setNewTask((current) => ({ ...current, images: current.images.filter((_, imageIndex) => imageIndex !== index) }));
+  }
+
   async function addTask() {
     if (!newTask.task.trim()) {
       setStatus({ type: "error", message: "Task name is required" });
@@ -212,7 +251,8 @@ export default function SchedulePage() {
       start_date: newTask.start_date || null,
       end_date: newTask.end_date || null,
       status: newTask.status,
-      notes: newTask.notes.trim() || null
+      notes: newTask.notes.trim() || null,
+      images: newTask.images
     });
     if (error) {
       setStatus({ type: "error", message: `Failed: ${error.message}` });
@@ -288,6 +328,36 @@ export default function SchedulePage() {
     if (!notesTask) return;
     await updateTaskField(notesTask.id, "notes", notesDraft);
     setNotesTaskId(null);
+  }
+
+  const photosTask = enrichedTasks.find((task) => task.id === photosTaskId) || null;
+  const photosEditable = Boolean(photosTask && !photosTask.is_archived && canEditTask(photosTask));
+
+  async function addTaskPhotos(event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = "";
+    if (!files.length || !photosTask) return;
+    setPhotosUploading(true);
+    try {
+      const uploaded = [];
+      for (const file of files) uploaded.push(await uploadTaskImage(file));
+      await updateTaskField(photosTask.id, "images", [...(photosTask.images || []), ...uploaded]);
+    } catch (error) {
+      setStatus({ type: "error", message: `Upload failed: ${error.message}` });
+    }
+    setPhotosUploading(false);
+  }
+
+  async function removeTaskPhoto(index) {
+    if (!photosTask) return;
+    const image = photosTask.images[index];
+    if (image?.path) await supabase.storage.from(IMAGE_BUCKET).remove([image.path]);
+    await updateTaskField(photosTask.id, "images", photosTask.images.filter((_, imageIndex) => imageIndex !== index));
+  }
+
+  function photosLabel(task, editable) {
+    const count = Array.isArray(task.images) ? task.images.length : 0;
+    return count ? `${count} photo${count === 1 ? "" : "s"}` : editable ? "Add photo" : "No photos";
   }
 
   function notesPreview(t) {
@@ -390,6 +460,11 @@ export default function SchedulePage() {
           )}
         </td>
         <td>
+          <button type="button" className="task-notes-btn" onClick={() => { setPhotosTaskId(t.id); setLightboxIndex(null); }}>
+            {photosLabel(t, editable)}
+          </button>
+        </td>
+        <td>
           <button type="button" className="task-notes-btn" onClick={() => openNotes(t)}>
             {notesPreview(t)}
           </button>
@@ -469,6 +544,7 @@ export default function SchedulePage() {
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Status</th>
+                    <th>Photos</th>
                     <th>Notes</th>
                     <th>Action</th>
                   </tr>
@@ -499,6 +575,7 @@ export default function SchedulePage() {
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Status</th>
+                    <th>Photos</th>
                     <th>Notes</th>
                     <th>Action</th>
                   </tr>
@@ -529,6 +606,7 @@ export default function SchedulePage() {
                     <th>Start Date</th>
                     <th>End Date</th>
                     <th>Status</th>
+                    <th>Photos</th>
                     <th>Notes</th>
                     <th>Audit</th>
                   </tr>
@@ -607,11 +685,23 @@ export default function SchedulePage() {
               value={newTask.notes}
               onChange={(e) => setNewTask((p) => ({ ...p, notes: e.target.value }))}
             />
+            <div className="issue-photos-grid">
+              {newTask.images.map((image, index) => (
+                <div className="issue-photo-thumb" key={image.path || index}>
+                  <img src={image.url} alt={`Task attachment ${index + 1}`} onClick={() => setLightboxIndex(index)} role="button" />
+                  <button type="button" onClick={() => removeNewTaskImage(index)} aria-label="Remove photo">×</button>
+                </div>
+              ))}
+              <label className="issue-photo-add" title="Add task photos">
+                +
+                <input type="file" accept="image/*" multiple onChange={addNewTaskImages} disabled={taskImagesUploading} />
+              </label>
+            </div>
             <div className="task-modal-actions">
               <button type="button" className="activity-back" onClick={() => setShowAddModal(false)}>
                 Cancel
               </button>
-              <button type="button" className="admin-save-btn" onClick={addTask}>
+              <button type="button" className="admin-save-btn" onClick={addTask} disabled={taskImagesUploading}>
                 Add Task
               </button>
             </div>
@@ -646,6 +736,54 @@ export default function SchedulePage() {
             </div>
           </div>
         </div>
+      )}
+
+      {photosTask && (
+        <div
+          className="task-modal-overlay"
+          onClick={(event) => {
+            if (event.target === event.currentTarget) {
+              setPhotosTaskId(null);
+              setLightboxIndex(null);
+            }
+          }}
+        >
+          <div className="task-modal" role="dialog" aria-modal="true">
+            <h3>Photos — {photosTask.task}</h3>
+            <p className="task-add-form-hint">{photosTask.member?.name || "Unknown"}&apos;s task</p>
+            <div className="issue-photos-grid">
+              {(photosTask.images || []).map((image, index) => (
+                <div className="issue-photo-thumb" key={image.path || index}>
+                  <img src={image.url} alt="" onClick={() => setLightboxIndex(index)} role="button" />
+                  {photosEditable && (
+                    <button type="button" onClick={() => removeTaskPhoto(index)} aria-label="Remove photo">×</button>
+                  )}
+                </div>
+              ))}
+              {!photosTask.images?.length && !photosEditable && <p>No photos yet.</p>}
+              {photosEditable && (
+                <label className="issue-photo-add" title="Add task photos">
+                  +
+                  <input type="file" accept="image/*" multiple onChange={addTaskPhotos} disabled={photosUploading} />
+                </label>
+              )}
+            </div>
+            <div className="task-modal-actions">
+              <button type="button" className="activity-back" onClick={() => { setPhotosTaskId(null); setLightboxIndex(null); }}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {lightboxIndex !== null && (showAddModal || photosTask) && (
+        <Lightbox
+          items={(showAddModal ? newTask.images : photosTask?.images || []).map((image) => ({ url: image.url, type: "image" }))}
+          index={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+          onIndex={setLightboxIndex}
+        />
       )}
     </section>
   );

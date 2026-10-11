@@ -87,7 +87,15 @@ export default function Layout() {
                     </NavLink>
                   );
                 })}
-                {!user ? (
+                {user ? (
+                  <NavLink
+                    to="/my-tasks"
+                    role="menuitem"
+                    className={({ isActive }) => (isActive ? "active" : undefined)}
+                  >
+                    My Tasks
+                  </NavLink>
+                ) : (
                   <NavLink
                     to="/login"
                     role="menuitem"
@@ -95,7 +103,7 @@ export default function Layout() {
                   >
                     {loading ? "Account" : "Login"}
                   </NavLink>
-                ) : null}
+                )}
               </div>
             ) : null}
           </li>
