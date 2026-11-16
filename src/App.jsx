@@ -22,6 +22,8 @@ import LearningResourcesPage from "./pages/LearningResourcesPage";
 import ComingSoonPage from "./pages/ComingSoonPage";
 import PartsInventoryPage from "./pages/PartsInventoryPage";
 import ExpensesPage from "./pages/ExpensesPage";
+import FtcTeamsPage from "./pages/FtcTeamsPage";
+import ScoutingPage from "./pages/ScoutingPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 
@@ -34,6 +36,14 @@ function App() {
             <Route index element={<HomePage />} />
             <Route path="about" element={<AboutPage />} />
             <Route path="team" element={<TeamPage />} />
+            <Route
+              path="ftc-teams"
+              element={(
+                <ProtectedRoute>
+                  <FtcTeamsPage />
+                </ProtectedRoute>
+              )}
+            />
             <Route
               path="schedule"
               element={(
@@ -139,7 +149,7 @@ function App() {
               path="scouting"
               element={(
                 <ProtectedRoute>
-                  <ComingSoonPage title="Scouting" subtitle="Scouting workflows are coming soon" />
+                  <ScoutingPage />
                 </ProtectedRoute>
               )}
             />

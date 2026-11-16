@@ -1,5 +1,6 @@
 export const memberHubItems = [
   { to: "/schedule", label: "Tasks" },
+  { to: "/ftc-teams", label: "FTC Teams" },
   { to: "/issues", label: "Issues" },
   { to: "/outreaches", label: "Outreaches" },
   { to: "/events", label: "Events" },

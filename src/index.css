@@ -1695,39 +1695,223 @@ body {
   width: 10%;
 }
 
+.outreach-table {
+  min-width: 1180px;
+}
+
 .outreach-table th:nth-child(1),
-.outreach-table td:nth-child(1) {
-  width: 9%;
-}
-
+.outreach-table td:nth-child(1) { width: 7%; }
 .outreach-table th:nth-child(2),
-.outreach-table td:nth-child(2) {
-  width: 18%;
-}
-
+.outreach-table td:nth-child(2) { width: 14%; }
 .outreach-table th:nth-child(3),
-.outreach-table td:nth-child(3) {
-  width: 9%;
-}
-
+.outreach-table td:nth-child(3) { width: 8%; }
 .outreach-table th:nth-child(4),
-.outreach-table td:nth-child(4),
+.outreach-table td:nth-child(4) { width: 10%; }
 .outreach-table th:nth-child(5),
-.outreach-table td:nth-child(5) {
-  width: 10%;
-}
-
+.outreach-table td:nth-child(5) { width: 17%; }
 .outreach-table th:nth-child(6),
-.outreach-table td:nth-child(6),
+.outreach-table td:nth-child(6) { width: 7%; }
 .outreach-table th:nth-child(7),
-.outreach-table td:nth-child(7) {
-  width: 14%;
+.outreach-table td:nth-child(7) { width: 10%; }
+.outreach-table th:nth-child(8),
+.outreach-table td:nth-child(8) { width: 8%; }
+.outreach-table th:nth-child(9),
+.outreach-table td:nth-child(9) { width: 8%; }
+.outreach-table th:nth-child(10),
+.outreach-table td:nth-child(10) { width: 11%; }
+
+.ftc-teams-table {
+  min-width: 920px;
 }
 
-.outreach-table th:nth-child(8),
-.outreach-table td:nth-child(8) {
-  width: 10%;
+.ftc-teams-table th:nth-child(1),
+.ftc-teams-table td:nth-child(1) { width: 14%; }
+.ftc-teams-table th:nth-child(2),
+.ftc-teams-table td:nth-child(2) { width: 21%; }
+.ftc-teams-table th:nth-child(3),
+.ftc-teams-table td:nth-child(3) { width: 37%; }
+.ftc-teams-table th:nth-child(4),
+.ftc-teams-table td:nth-child(4) { width: 16%; }
+.ftc-teams-table th:nth-child(5),
+.ftc-teams-table td:nth-child(5) { width: 12%; }
+
+.ftc-team-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
+
+.ftc-team-description-input {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.ftc-teams-table tr.is-editing td {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface)) !important;
+}
+
+.ftc-team-toolbar {
+  flex-wrap: wrap;
+}
+
+.ftc-team-import-input {
+  display: none;
+}
+
+.ftc-season-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ftc-season-picker .task-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.ftc-season-add-btn {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--accent-strong);
+  font-size: 1.2rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ftc-season-add-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.ftc-team-season-label {
+  margin: 12px 0;
+}
+
+.scouting-modal {
+  max-width: 1040px;
+}
+
+.scouting-team-fields,
+.scouting-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.scouting-team-fields {
+  margin: 14px 0;
+}
+
+.scouting-form-grid {
+  margin-top: 12px;
+}
+
+.scouting-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.scouting-form-field input,
+.scouting-form-field select,
+.scouting-form-field textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 7px 9px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+
+.scouting-form-field textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+.scouting-table {
+  min-width: 560px;
+}
+
+.scouting-table th,
+.scouting-table td {
+  min-width: 180px;
+  max-width: 360px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.scouting-team-number-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-strong);
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.scouting-details-modal {
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.scouting-details-team > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.scouting-details-team strong {
+  color: var(--ink);
+  font-size: 1rem;
+}
+
+.scouting-details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 18px;
+  margin: 12px 0;
+}
+
+.scouting-detail-item {
+  min-width: 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+
+.scouting-detail-item dt {
+  margin-bottom: 4px;
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.scouting-detail-item dd {
+  margin: 0;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.scouting-table td {
+  vertical-align: top;
+}
+
+.scouting-table th:nth-child(1),
+.scouting-table td:nth-child(1) { min-width: 100px; }
+.scouting-table th:nth-child(2),
+.scouting-table td:nth-child(2) { min-width: 160px; }
 
 .issue-member-filter {
   flex: 1 1 200px;
@@ -1790,9 +1974,7 @@ body {
 .task-grid-table th:last-child,
 .task-grid-table td:last-child,
 .issue-table th:last-child,
-.issue-table td:last-child,
-.outreach-table th:last-child,
-.outreach-table td:last-child {
+.issue-table td:last-child {
   width: 6%;
   white-space: nowrap;
 }
@@ -1807,6 +1989,145 @@ body {
   justify-content: center;
   font-size: 1.1rem;
   line-height: 1;
+}
+
+.outreach-row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+}
+
+.outreach-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.outreach-edit-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+.outreach-edit-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.outreach-edit-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.outreach-save-row-btn {
+  border-color: #16803c;
+  color: #16803c;
+}
+
+.outreach-save-row-btn:hover:not(:disabled) {
+  border-color: #16803c;
+  color: #16803c;
+  background: #e8f7ed;
+}
+
+.outreach-cancel-row-btn {
+  flex: none;
+  padding: 4px 5px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.outreach-cancel-row-btn:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.outreach-cancel-row-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.outreach-member-names {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.outreach-member-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 6px;
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 0.76rem;
+  text-align: left;
+}
+
+.outreach-member-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.outreach-member-options label.is-inactive {
+  color: var(--muted);
+}
+
+.outreach-member-options input {
+  flex: none;
+  width: auto;
+  margin: 0;
+}
+
+.outreach-member-options span {
+  overflow-wrap: anywhere;
+}
+
+.outreach-member-options-compact {
+  max-height: 94px;
+  padding: 4px;
+  font-size: 0.68rem;
+}
+
+.outreach-create-member-options {
+  margin-bottom: 10px;
+}
+
+.outreach-member-empty {
+  color: var(--muted);
+}
+
+.outreach-table td.outreach-members-cell {
+  overflow: visible;
+}
+
+.outreach-table tr.is-editing td {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface)) !important;
 }
 
 .issue-photos-label {
@@ -5961,8 +6282,8 @@ a.sponsor-card:hover {
   }
 
   .task-grid-table td:nth-child(1)::before,
-  .issue-table td:nth-child(1)::before,
-  .outreach-table td:nth-child(1)::before { content: "Member"; }
+  .issue-table td:nth-child(1)::before { content: "Member"; }
+  .outreach-table td:nth-child(1)::before { content: "Logged By"; }
   .task-grid-table td:nth-child(2)::before { content: "Task"; }
   .task-grid-table td:nth-child(3)::before { content: "Hours"; }
   .task-grid-table td:nth-child(4)::before { content: "Start date"; }
@@ -5984,10 +6305,12 @@ a.sponsor-card:hover {
   .outreach-table td:nth-child(2)::before { content: "Outreach"; }
   .outreach-table td:nth-child(3)::before { content: "Type"; }
   .outreach-table td:nth-child(4)::before { content: "Date"; }
-  .outreach-table td:nth-child(5)::before { content: "Hours"; }
-  .outreach-table td:nth-child(6)::before { content: "Notes"; }
-  .outreach-table td:nth-child(7)::before { content: "Photos"; }
-  .outreach-table td:nth-child(8)::before { content: "Action"; }
+  .outreach-table td:nth-child(5)::before { content: "Members"; }
+  .outreach-table td:nth-child(6)::before { content: "Hours"; }
+  .outreach-table td:nth-child(7)::before { content: "Team Hours"; }
+  .outreach-table td:nth-child(8)::before { content: "Notes"; }
+  .outreach-table td:nth-child(9)::before { content: "Photos"; }
+  .outreach-table td:nth-child(10)::before { content: "Action"; }
 
   .event-table td:nth-child(1)::before { content: "Event"; }
   .event-table td:nth-child(2)::before { content: "Type"; }
@@ -6010,6 +6333,62 @@ a.sponsor-card:hover {
   .resource-table td:nth-child(4)::before { content: "Date"; }
   .resource-table td:nth-child(5)::before { content: "Likes"; }
   .resource-table td:nth-child(6)::before { content: "Action"; }
+
+  .ftc-teams-table td:nth-child(1)::before { content: "Team Number"; }
+  .ftc-teams-table td:nth-child(2)::before { content: "Team Name"; }
+  .ftc-teams-table td:nth-child(3)::before { content: "Description"; }
+  .ftc-teams-table td:nth-child(4)::before { content: "Season Name"; }
+  .ftc-teams-table td:nth-child(5)::before { content: "Actions"; }
+
+  .scouting-table-wrap {
+    overflow: auto;
+  }
+
+  .scouting-table {
+    display: table;
+    min-width: 480px;
+  }
+
+  .scouting-table thead {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: 0;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  .scouting-table tbody {
+    display: table-row-group;
+  }
+
+  .scouting-table tr {
+    display: table-row;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  .scouting-table tr > td {
+    display: table-cell;
+    width: auto !important;
+    min-width: 160px;
+    max-width: 300px;
+    padding: 8px 10px;
+    overflow: hidden;
+    white-space: normal;
+    text-overflow: clip;
+  }
+
+  .scouting-table td::before {
+    content: none !important;
+  }
+
+  .scouting-details-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 480px) {

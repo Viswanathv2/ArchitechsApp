@@ -19,6 +19,16 @@ export const portalDefaults = {
     subtitle: "Track and manage what everyone on the team is working on",
     body: "Add your meeting schedule, competitions, and build sessions."
   },
+  ftcTeams: {
+    title: "FTC Teams",
+    subtitle: "Maintain the teams and seasons used for scouting",
+    body: "Add and manage FTC team records."
+  },
+  scouting: {
+    title: "Scouting",
+    subtitle: "Record robot capabilities and match performance",
+    body: "Capture team scouting reports."
+  },
   issues: {
     title: "Issues",
     subtitle: "Track CAD, Build, Code, and Portfolio issues",

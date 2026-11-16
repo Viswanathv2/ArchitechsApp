@@ -21,21 +21,56 @@ const emptyOutreach = {
   outreach_type: OUTREACH_TYPES[0],
   outreach_date: "",
   hours: "",
+  memberIds: [],
   notes: "",
   images: []
 };
 
 const OUTREACH_COLUMNS = [
-  { key: "member_name", label: "Member" },
+  { key: "member_name", label: "Logged By" },
   { key: "member_type", label: "Type" },
   { key: "outreach_name", label: "Outreach Name" },
   { key: "outreach_type", label: "Outreach Type" },
   { key: "outreach_date", label: "Date" },
+  { key: "members", label: "Members" },
   { key: "hours", label: "Outreach Hours" },
+  { key: "total_team_hours", label: "Team Hours" },
   { key: "notes", label: "Notes" },
   { key: "archived", label: "Archived" },
   { key: "archived_by", label: "Archived By" }
 ];
+
+function MemberSelection({ members, selectedIds, onChange, className = "", disabled = false }) {
+  function toggleMember(id, checked) {
+    const nextIds = checked
+      ? [...new Set([...selectedIds, id])]
+      : selectedIds.filter((selectedId) => selectedId !== id);
+    onChange(nextIds);
+  }
+
+  const visibleMembers = members.filter((member) => member.is_active || selectedIds.includes(member.id));
+
+  return (
+    <div className={`outreach-member-options ${className}`.trim()} role="group" aria-label="Participating team members">
+      {visibleMembers.length ? visibleMembers.map((member) => (
+        <label key={member.id} className={!member.is_active ? "is-inactive" : ""}>
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(member.id)}
+            disabled={disabled || (!member.is_active && !selectedIds.includes(member.id))}
+            onChange={(event) => toggleMember(member.id, event.target.checked)}
+          />
+          <span>{member.name}{member.is_active ? "" : " (inactive)"}</span>
+        </label>
+      )) : <span className="outreach-member-empty">No active team members</span>}
+    </div>
+  );
+}
+
+function getTotalTeamHours(hours, memberCount) {
+  if (hours == null || hours === "") return null;
+  return Number((Number(hours) * memberCount).toFixed(2));
+}
 
 export default function OutreachesPage() {
   const page = usePortalPage("outreaches");
@@ -44,6 +79,7 @@ export default function OutreachesPage() {
 
   const [members, setMembers] = useState([]);
   const [outreaches, setOutreaches] = useState([]);
+  const [outreachMembers, setOutreachMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState({ type: "", message: "" });
   const [memberFilter, setMemberFilter] = useState("");
@@ -51,6 +87,9 @@ export default function OutreachesPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newOutreach, setNewOutreach] = useState(emptyOutreach);
   const [creating, setCreating] = useState(false);
+  const [editingOutreachId, setEditingOutreachId] = useState(null);
+  const [outreachDraft, setOutreachDraft] = useState(null);
+  const [savingOutreachId, setSavingOutreachId] = useState(null);
   const [showArchive, setShowArchive] = useState(false);
 
   const [notesOutreachId, setNotesOutreachId] = useState(null);
@@ -77,6 +116,8 @@ export default function OutreachesPage() {
       setNotesOutreachId(null);
       setPhotosOutreachId(null);
       setLightboxIndex(null);
+      setEditingOutreachId(null);
+      setOutreachDraft(null);
     }
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -84,27 +125,37 @@ export default function OutreachesPage() {
 
   async function loadAll() {
     setLoading(true);
-    const [membersResp, coachesResp, mentorsResp, outreachesResp] = await Promise.all([
+    const [membersResp, coachesResp, mentorsResp, outreachesResp, outreachMembersResp] = await Promise.all([
       supabase
         .from("team_members")
-        .select("id,name,roles,image_url,email")
-        .eq("is_active", true)
+        .select("id,name,roles,image_url,email,is_active")
         .order("name", { ascending: true }),
       supabase
         .from("coaches")
-        .select("id,name,role,image_url,email")
+        .select("id,name,role,image_url,email,is_active")
         .eq("is_active", true)
         .order("name", { ascending: true }),
       supabase
         .from("mentors")
-        .select("id,name,role,image_url,email")
+        .select("id,name,role,image_url,email,is_active")
         .eq("is_active", true)
         .order("name", { ascending: true }),
       supabase
         .from("outreaches")
         .select("id,member_id,member_type,outreach_name,outreach_type,outreach_date,hours,notes,images,is_archived,archived_at,archived_by,created_at")
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: true }),
+      supabase
+        .from("outreach_members")
+        .select("outreach_id,member_id")
     ]);
+
+    const failedResponse = [membersResp, coachesResp, mentorsResp, outreachesResp, outreachMembersResp]
+      .find((response) => response.error);
+    if (failedResponse) {
+      setStatus({ type: "error", message: `Couldn't load outreaches: ${failedResponse.error.message}` });
+      setLoading(false);
+      return;
+    }
 
     const teamMembers = (Array.isArray(membersResp.data) ? membersResp.data : []).map((m) => ({
       ...m,
@@ -124,6 +175,7 @@ export default function OutreachesPage() {
 
     setMembers([...teamMembers, ...coaches, ...mentors]);
     setOutreaches(Array.isArray(outreachesResp.data) ? outreachesResp.data : []);
+    setOutreachMembers(Array.isArray(outreachMembersResp.data) ? outreachMembersResp.data : []);
     setLoading(false);
   }
 
@@ -134,12 +186,6 @@ export default function OutreachesPage() {
     [members, myEmail]
   );
 
-  useEffect(() => {
-    if (!isCoach && selfMember) {
-      setNewOutreach((p) => (p.memberKey ? p : { ...p, memberKey: `${selfMember.type}:${selfMember.id}` }));
-    }
-  }, [isCoach, selfMember]);
-
   const memberByKey = useMemo(() => {
     const map = new Map();
     for (const m of members) {
@@ -148,19 +194,36 @@ export default function OutreachesPage() {
     return map;
   }, [members]);
 
+  const teamMembers = useMemo(
+    () => members.filter((member) => member.type === "team_member"),
+    [members]
+  );
+
   const enrichedOutreaches = useMemo(
-    () =>
-      outreaches.map((o) => ({
+    () => {
+      const membersByOutreach = new Map();
+      for (const link of outreachMembers) {
+        const participants = membersByOutreach.get(link.outreach_id) || [];
+        const participant = memberByKey.get(`team_member:${link.member_id}`);
+        if (participant) participants.push(participant);
+        membersByOutreach.set(link.outreach_id, participants);
+      }
+      return outreaches.map((o) => ({
         ...o,
-        member: memberByKey.get(`${o.member_type}:${o.member_id}`) || null
-      })),
-    [outreaches, memberByKey]
+        member: memberByKey.get(`${o.member_type}:${o.member_id}`) || null,
+        teamMembers: membersByOutreach.get(o.id) || []
+      }));
+    },
+    [outreaches, outreachMembers, memberByKey]
   );
 
   const filteredOutreaches = useMemo(() => {
     const term = memberFilter.trim().toLowerCase();
     if (!term) return enrichedOutreaches;
-    return enrichedOutreaches.filter((o) => String(o.member?.name || "").toLowerCase().includes(term));
+    return enrichedOutreaches.filter((o) =>
+      String(o.member?.name || "").toLowerCase().includes(term) ||
+      o.teamMembers.some((member) => String(member.name || "").toLowerCase().includes(term))
+    );
   }, [enrichedOutreaches, memberFilter]);
 
   const activeOutreaches = useMemo(
@@ -228,6 +291,11 @@ export default function OutreachesPage() {
       setStatus({ type: "error", message: "Outreach name is required" });
       return;
     }
+    const hours = newOutreach.hours === "" ? null : Number(newOutreach.hours);
+    if (hours !== null && (!Number.isFinite(hours) || hours < 0)) {
+      setStatus({ type: "error", message: "Hours must be a non-negative number." });
+      return;
+    }
     const target = isCoach ? memberByKey.get(newOutreach.memberKey) : selfMember;
     if (!target) {
       setStatus({
@@ -237,29 +305,51 @@ export default function OutreachesPage() {
       return;
     }
     setCreating(true);
-    const { error } = await supabase.from("outreaches").insert({
+    const { data: createdOutreach, error } = await supabase.from("outreaches").insert({
       member_id: target.id,
       member_type: target.type,
       outreach_name: newOutreach.outreach_name.trim(),
       outreach_type: newOutreach.outreach_type,
       outreach_date: newOutreach.outreach_date || null,
-      hours: newOutreach.hours === "" ? null : Number(newOutreach.hours),
+      hours,
       notes: newOutreach.notes.trim() || null,
       images: newOutreach.images
-    });
-    setCreating(false);
+    }).select("id").single();
     if (error) {
+      setCreating(false);
       setStatus({ type: "error", message: `Failed: ${error.message}` });
-    } else {
-      setNewOutreach((p) => ({ ...emptyOutreach, memberKey: isCoach ? "" : p.memberKey }));
-      setStatus({ type: "success", message: "Outreach created!" });
-      setShowCreateModal(false);
-      loadAll();
+      return;
     }
+
+    const memberIds = [...new Set(newOutreach.memberIds)];
+    if (memberIds.length) {
+      const { error: membersError } = await supabase.from("outreach_members").insert(
+        memberIds.map((memberId) => ({ outreach_id: createdOutreach.id, member_id: memberId }))
+      );
+      if (membersError) {
+        const { error: cleanupError } = await supabase.from("outreaches").delete().eq("id", createdOutreach.id);
+        setCreating(false);
+        setStatus({
+          type: "error",
+          message: cleanupError
+            ? `Couldn't save participating members: ${membersError.message}. The outreach record also couldn't be removed: ${cleanupError.message}`
+            : `Couldn't save participating members: ${membersError.message}`
+        });
+        return;
+      }
+    }
+
+    setCreating(false);
+    setNewOutreach({
+      ...emptyOutreach,
+      memberKey: isCoach || !selfMember ? "" : `${selfMember.type}:${selfMember.id}`
+    });
+    setStatus({ type: "success", message: "Outreach created!" });
+    setShowCreateModal(false);
+    await loadAll();
   }
 
   async function updateOutreachField(id, field, value) {
-    setOutreaches((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: value } : o)));
     let payload;
     if (field === "outreach_date") {
       payload = { outreach_date: value || null };
@@ -271,8 +361,59 @@ export default function OutreachesPage() {
     const { error } = await supabase.from("outreaches").update(payload).eq("id", id);
     if (error) {
       setStatus({ type: "error", message: `Save failed: ${error.message}` });
-      loadAll();
+      return false;
     }
+    setOutreaches((prev) => prev.map((o) => (o.id === id ? { ...o, [field]: value } : o)));
+    return true;
+  }
+
+  function startEditingOutreach(o) {
+    setEditingOutreachId(o.id);
+    setOutreachDraft({
+      outreach_name: o.outreach_name || "",
+      outreach_type: o.outreach_type || OUTREACH_TYPES[0],
+      outreach_date: o.outreach_date || "",
+      hours: o.hours ?? "",
+      memberIds: o.teamMembers.map((member) => member.id)
+    });
+  }
+
+  function cancelEditingOutreach() {
+    setEditingOutreachId(null);
+    setOutreachDraft(null);
+  }
+
+  async function saveOutreach(o) {
+    if (!outreachDraft || savingOutreachId) return;
+    const name = outreachDraft.outreach_name.trim();
+    const hours = outreachDraft.hours === "" ? null : Number(outreachDraft.hours);
+    if (!name) {
+      setStatus({ type: "error", message: "Outreach name is required." });
+      return;
+    }
+    if (hours !== null && (!Number.isFinite(hours) || hours < 0)) {
+      setStatus({ type: "error", message: "Hours must be a non-negative number." });
+      return;
+    }
+
+    setSavingOutreachId(o.id);
+    const { error } = await supabase.rpc("update_outreach_with_members", {
+      p_outreach_id: o.id,
+      p_outreach_name: name,
+      p_outreach_type: outreachDraft.outreach_type,
+      p_outreach_date: outreachDraft.outreach_date || null,
+      p_hours: hours,
+      p_member_ids: [...new Set(outreachDraft.memberIds)]
+    });
+    setSavingOutreachId(null);
+    if (error) {
+      setStatus({ type: "error", message: `Save failed: ${error.message}` });
+      return;
+    }
+
+    setStatus({ type: "success", message: "Outreach updated." });
+    cancelEditingOutreach();
+    await loadAll();
   }
 
   async function archiveOutreach(id) {
@@ -290,7 +431,7 @@ export default function OutreachesPage() {
   }
 
   const notesOutreach = enrichedOutreaches.find((o) => o.id === notesOutreachId) || null;
-  const notesEditable = Boolean(notesOutreach);
+  const notesEditable = Boolean(notesOutreach && canEditOutreach(notesOutreach));
 
   function openNotes(o) {
     setNotesOutreachId(o.id);
@@ -299,8 +440,9 @@ export default function OutreachesPage() {
 
   async function saveNotes() {
     if (!notesOutreach) return;
-    await updateOutreachField(notesOutreach.id, "notes", notesDraft);
-    setNotesOutreachId(null);
+    if (await updateOutreachField(notesOutreach.id, "notes", notesDraft)) {
+      setNotesOutreachId(null);
+    }
   }
 
   function notesPreview(o) {
@@ -352,7 +494,9 @@ export default function OutreachesPage() {
       outreach_name: o.outreach_name,
       outreach_type: o.outreach_type,
       outreach_date: o.outreach_date || "",
+      members: o.teamMembers.map((member) => member.name).join(", "),
       hours: o.hours ?? "",
+      total_team_hours: getTotalTeamHours(o.hours, o.teamMembers.length) ?? "",
       notes: o.notes || "",
       archived: o.is_archived ? "Yes" : "No",
       archived_by: o.archived_by || ""
@@ -362,8 +506,12 @@ export default function OutreachesPage() {
 
   function renderOutreachRow(o, { archived = false } = {}) {
     const editable = !archived && canEditOutreach(o);
+    const editing = editable && editingOutreachId === o.id;
+    const editingAnotherRow = Boolean(editingOutreachId && editingOutreachId !== o.id);
+    const saving = savingOutreachId === o.id;
+    const memberNames = o.teamMembers.map((member) => member.name).join(", ");
     return (
-      <tr key={o.id}>
+      <tr key={o.id} className={editing ? "is-editing" : ""}>
         <td>
           <div className="task-member-cell">
             <span className="activity-avatar" title={o.member?.name || "Unknown member"}>
@@ -372,22 +520,24 @@ export default function OutreachesPage() {
           </div>
         </td>
         <td>
-          {editable ? (
+          {editing ? (
             <input
               className="task-input"
-              value={o.outreach_name}
-              onChange={(e) => updateOutreachField(o.id, "outreach_name", e.target.value)}
+              value={outreachDraft.outreach_name}
+              disabled={saving}
+              onChange={(e) => setOutreachDraft((draft) => ({ ...draft, outreach_name: e.target.value }))}
             />
           ) : (
             o.outreach_name
           )}
         </td>
         <td>
-          {editable ? (
+          {editing ? (
             <select
               className="task-input"
-              value={o.outreach_type}
-              onChange={(e) => updateOutreachField(o.id, "outreach_type", e.target.value)}
+              value={outreachDraft.outreach_type}
+              disabled={saving}
+              onChange={(e) => setOutreachDraft((draft) => ({ ...draft, outreach_type: e.target.value }))}
             >
               {OUTREACH_TYPES.map((t) => (
                 <option key={t} value={t}>{t}</option>
@@ -398,30 +548,53 @@ export default function OutreachesPage() {
           )}
         </td>
         <td>
-          {editable ? (
+          {editing ? (
             <input
               type="date"
               className="task-input"
-              value={o.outreach_date || ""}
-              onChange={(e) => updateOutreachField(o.id, "outreach_date", e.target.value)}
+              value={outreachDraft.outreach_date}
+              disabled={saving}
+              onChange={(e) => setOutreachDraft((draft) => ({ ...draft, outreach_date: e.target.value }))}
             />
           ) : (
             o.outreach_date || "—"
           )}
         </td>
+        <td className="outreach-members-cell">
+          {editing ? (
+            <MemberSelection
+              members={teamMembers}
+              selectedIds={outreachDraft.memberIds}
+              onChange={(memberIds) => setOutreachDraft((draft) => ({ ...draft, memberIds }))}
+              className="outreach-member-options-compact"
+              disabled={saving}
+            />
+          ) : (
+            <span className="outreach-member-names" title={memberNames || "No participating team members"}>
+              {memberNames || "—"}
+            </span>
+          )}
+        </td>
         <td>
-          {editable ? (
+          {editing ? (
             <input
               type="number"
               min="0"
               step="0.25"
               className="task-input"
-              value={o.hours ?? ""}
-              onChange={(e) => updateOutreachField(o.id, "hours", e.target.value)}
+              value={outreachDraft.hours}
+              disabled={saving}
+              onChange={(e) => setOutreachDraft((draft) => ({ ...draft, hours: e.target.value }))}
             />
           ) : (
             o.hours ?? "—"
           )}
+        </td>
+        <td className="outreach-total-hours">
+          {getTotalTeamHours(
+            editing ? outreachDraft.hours : o.hours,
+            editing ? outreachDraft.memberIds.length : o.teamMembers.length
+          ) ?? "—"}
         </td>
         <td>
           <button type="button" className="task-notes-btn" onClick={() => openNotes(o)}>
@@ -445,9 +618,58 @@ export default function OutreachesPage() {
             </span>
           ) : (
             editable && (
-              <button className="admin-delete-btn" aria-label="Delete outreach" title="Delete outreach" onClick={() => archiveOutreach(o.id)}>
-                ×
-              </button>
+              <div className="outreach-row-actions">
+                {editing ? (
+                  <>
+                    <button
+                      type="button"
+                      className="outreach-edit-btn outreach-save-row-btn"
+                      aria-label="Save outreach"
+                      title="Save outreach"
+                      disabled={saving}
+                      onClick={() => saveOutreach(o)}
+                    >
+                      <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="m5 12 4 4L19 6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="outreach-cancel-row-btn"
+                      aria-label="Cancel editing"
+                      title="Cancel editing"
+                      disabled={saving}
+                      onClick={cancelEditingOutreach}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="outreach-edit-btn"
+                    aria-label="Edit outreach"
+                    title="Edit outreach"
+                    disabled={editingAnotherRow}
+                    onClick={() => startEditingOutreach(o)}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 20h9" />
+                      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" />
+                    </svg>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="admin-delete-btn"
+                  aria-label="Delete outreach"
+                  title="Delete outreach"
+                  disabled={saving || editing}
+                  onClick={() => archiveOutreach(o.id)}
+                >
+                  ×
+                </button>
+              </div>
             )
           )}
         </td>
@@ -479,7 +701,11 @@ export default function OutreachesPage() {
               type="button"
               className="admin-save-btn task-toolbar-btn"
               onClick={() => {
-                setNewOutreach((p) => ({ ...emptyOutreach, memberKey: isCoach ? "" : p.memberKey }));
+                setNewOutreach({
+                  ...emptyOutreach,
+                  memberKey: isCoach || !selfMember ? "" : `${selfMember.type}:${selfMember.id}`,
+                  memberIds: !isCoach && selfMember?.type === "team_member" ? [selfMember.id] : []
+                });
                 setShowCreateModal(true);
               }}
             >
@@ -511,11 +737,13 @@ export default function OutreachesPage() {
               <table ref={tableRef} className="task-table outreach-table">
                 <thead>
                   <tr>
-                    <th>Member</th>
+                    <th>Logged By</th>
                     <th>Outreach Name</th>
                     <th>Type</th>
                     <th>Date</th>
+                    <th>Members</th>
                     <th>Hours</th>
+                    <th>Total Team Hours</th>
                     <th>Notes</th>
                     <th>Photos</th>
                     <th>Action</th>
@@ -541,11 +769,13 @@ export default function OutreachesPage() {
               <table ref={tableRef} className="task-table outreach-table">
                 <thead>
                   <tr>
-                    <th>Member</th>
+                    <th>Logged By</th>
                     <th>Outreach Name</th>
                     <th>Type</th>
                     <th>Date</th>
+                    <th>Members</th>
                     <th>Hours</th>
+                    <th>Total Team Hours</th>
                     <th>Notes</th>
                     <th>Photos</th>
                     <th>Audit</th>
@@ -578,7 +808,7 @@ export default function OutreachesPage() {
                   onChange={(e) => setNewOutreach((p) => ({ ...p, memberKey: e.target.value }))}
                 >
                   <option value="">Assign to…</option>
-                  {members.map((m) => (
+                  {members.filter((member) => member.is_active).map((m) => (
                     <option key={`${m.type}:${m.id}`} value={`${m.type}:${m.id}`}>
                       {m.name} ({m.typeLabel})
                     </option>
@@ -615,6 +845,14 @@ export default function OutreachesPage() {
                 onChange={(e) => setNewOutreach((p) => ({ ...p, hours: e.target.value }))}
               />
             </div>
+            <label className="issue-photos-label">Participating team members</label>
+            <MemberSelection
+              members={teamMembers}
+              selectedIds={newOutreach.memberIds}
+              onChange={(memberIds) => setNewOutreach((p) => ({ ...p, memberIds }))}
+              className="outreach-create-member-options"
+              disabled={creating}
+            />
             <textarea
               className="task-notes-textarea"
               placeholder="Notes (optional)"
