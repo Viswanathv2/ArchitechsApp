@@ -1754,6 +1754,29 @@ body {
   flex-wrap: wrap;
 }
 
+.ftc-team-number-field {
+  display: flex;
+  flex: 1 1 140px;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ftc-team-number-field input {
+  flex: none;
+  width: 100%;
+}
+
+.ftc-team-number-field input[aria-invalid="true"] {
+  border-color: #b00020;
+}
+
+.ftc-team-number-error {
+  color: #b00020;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
 .ftc-team-import-input {
   display: none;
 }
@@ -1912,6 +1935,23 @@ body {
 .scouting-table td:nth-child(1) { min-width: 100px; }
 .scouting-table th:nth-child(2),
 .scouting-table td:nth-child(2) { min-width: 160px; }
+.scouting-table th:nth-child(3),
+.scouting-table td:nth-child(3) {
+  min-width: 100px;
+  max-width: 130px;
+}
+
+.scouting-grid-actions {
+  text-align: center;
+}
+
+.task-table .scouting-grid-delete-btn {
+  width: auto;
+  min-width: 60px;
+  height: 30px;
+  padding: 0 8px;
+  font-size: 0.75rem;
+}
 
 .issue-member-filter {
   flex: 1 1 200px;

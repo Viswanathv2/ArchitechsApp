@@ -60,6 +60,7 @@ export default function ScoutingPage() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [editingEntry, setEditingEntry] = useState(false);
@@ -249,6 +250,7 @@ export default function ScoutingPage() {
     setSelectedEntry(entry);
     setEditingEntry(false);
     setEditDraft(null);
+    setStatus({ type: "", message: "" });
   }
 
   function startEditingEntry() {
@@ -308,6 +310,41 @@ export default function ScoutingPage() {
       });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function deleteScoutingReport(entry = selectedEntry) {
+    if (!entry || deletingId || saving) return;
+    const teamNumber = entry.team?.team_number || "unknown";
+    if (!window.confirm(`Delete the scouting report for FTC team ${teamNumber}? This cannot be undone.`)) return;
+
+    setDeletingId(entry.id);
+    try {
+      const { data, error } = await supabase
+        .from("ftc_scouting_entries")
+        .delete()
+        .eq("id", entry.id)
+        .select("id")
+        .maybeSingle();
+      if (error || !data) {
+        setStatus({
+          type: "error",
+          message: error ? `Couldn't delete scouting report: ${error.message}` : "Couldn't delete scouting report: no record was removed."
+        });
+        return;
+      }
+
+      setEntries((current) => current.filter((currentEntry) => currentEntry.id !== entry.id));
+      if (selectedEntry?.id === entry.id) {
+        setSelectedEntry(null);
+        setEditingEntry(false);
+        setEditDraft(null);
+      }
+      setStatus({ type: "success", message: `Scouting report for team ${teamNumber} deleted.` });
+    } catch (error) {
+      setStatus({ type: "error", message: `Couldn't delete scouting report: ${error.message}` });
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -404,6 +441,7 @@ export default function ScoutingPage() {
                   <tr>
                     <th>Team Number</th>
                     <th>Team Name</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -420,6 +458,18 @@ export default function ScoutingPage() {
                         </button>
                       </td>
                       <td>{entry.team?.team_name || "—"}</td>
+                      <td className="scouting-grid-actions">
+                        <button
+                          type="button"
+                          className="admin-delete-btn scouting-grid-delete-btn"
+                          aria-label={`Delete scouting report for team ${entry.team?.team_number || "unknown"}`}
+                          title="Delete scouting report"
+                          disabled={saving || Boolean(deletingId)}
+                          onClick={() => deleteScoutingReport(entry)}
+                        >
+                          Delete
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -486,7 +536,7 @@ export default function ScoutingPage() {
         <div
           className="task-modal-overlay"
           onClick={(event) => {
-            if (event.target === event.currentTarget && !saving) {
+            if (event.target === event.currentTarget && !saving && !deletingId) {
               setSelectedEntry(null);
               setEditingEntry(false);
             }
@@ -494,6 +544,7 @@ export default function ScoutingPage() {
         >
           <div className="task-modal scouting-modal scouting-details-modal" role="dialog" aria-modal="true" aria-labelledby="scouting-details-title">
             <h2 id="scouting-details-title">Scouting Report Details</h2>
+            {status.type === "error" && status.message && <p className="error" role="alert">{status.message}</p>}
             <div className="scouting-team-fields scouting-details-team">
               <div><span>Team number</span><strong>{selectedEntry.team?.team_number || "—"}</strong></div>
               <div><span>Team name</span><strong>{selectedEntry.team?.team_name || "—"}</strong></div>
@@ -532,10 +583,18 @@ export default function ScoutingPage() {
                 </>
               ) : (
                 <>
-                  <button type="button" className="activity-back" onClick={() => setSelectedEntry(null)}>
+                  <button type="button" className="activity-back" disabled={Boolean(deletingId)} onClick={() => setSelectedEntry(null)}>
                     Close
                   </button>
-                  <button type="button" className="admin-save-btn" onClick={startEditingEntry}>
+                  <button
+                    type="button"
+                    className="admin-delete-btn"
+                    disabled={saving || Boolean(deletingId)}
+                    onClick={deleteScoutingReport}
+                  >
+                    {deletingId === selectedEntry.id ? "Deleting…" : "Delete Report"}
+                  </button>
+                  <button type="button" className="admin-save-btn" disabled={saving || Boolean(deletingId)} onClick={startEditingEntry}>
                     Edit Report
                   </button>
                 </>

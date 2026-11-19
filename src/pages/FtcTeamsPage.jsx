@@ -46,6 +46,14 @@ function normalizeSeasonName(value) {
   return String(value || "").trim().toLocaleLowerCase();
 }
 
+function normalizeTeamNumber(value) {
+  return String(value || "").trim().toLocaleLowerCase();
+}
+
+function isDuplicateKeyError(error) {
+  return error?.code === "23505" || /duplicate key|unique constraint/i.test(error?.message || "");
+}
+
 function SeasonPicker({ value, seasons, onChange, onAdd, disabled = false }) {
   return (
     <div className="ftc-season-picker">
@@ -90,6 +98,7 @@ export default function FtcTeamsPage() {
   const [showSeasonForm, setShowSeasonForm] = useState(false);
   const [newSeasonName, setNewSeasonName] = useState("");
   const [newTeam, setNewTeam] = useState(emptyTeam);
+  const [teamNumberConflictMessage, setTeamNumberConflictMessage] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [draft, setDraft] = useState(null);
   const importFileRef = useRef(null);
@@ -139,28 +148,49 @@ export default function FtcTeamsPage() {
     return true;
   }
 
+  function hasDuplicateTeamNumber(teamNumber, exceptId = null) {
+    const normalized = normalizeTeamNumber(teamNumber);
+    return Boolean(normalized) && teams.some((team) =>
+      team.id !== exceptId && normalizeTeamNumber(team.team_number) === normalized
+    );
+  }
+
   async function addTeam() {
     if (!validateTeam(newTeam)) return;
-    setSaving(true);
-    const { data, error } = await supabase
-      .from("ftc_teams")
-      .insert({
-        team_number: newTeam.team_number.trim(),
-        team_name: newTeam.team_name.trim(),
-        description: newTeam.description.trim(),
-        season_name: newTeam.season_name.trim()
-      })
-      .select(TEAM_FIELDS)
-      .single();
-    setSaving(false);
-    if (error) {
-      setStatus({ type: "error", message: `Couldn't add team: ${error.message}` });
+    if (hasDuplicateTeamNumber(newTeam.team_number)) {
+      setTeamNumberConflictMessage(`Team number ${newTeam.team_number.trim()} already exists.`);
       return;
     }
-    setTeams((current) => sortTeams([...current, data]));
-    setNewTeam(emptyTeam);
-    setShowAddForm(false);
-    setStatus({ type: "success", message: "FTC team added." });
+
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("ftc_teams")
+        .insert({
+          team_number: newTeam.team_number.trim(),
+          team_name: newTeam.team_name.trim(),
+          description: newTeam.description.trim(),
+          season_name: newTeam.season_name.trim()
+        })
+        .select(TEAM_FIELDS)
+        .single();
+      if (error) {
+        if (isDuplicateKeyError(error)) {
+          setTeamNumberConflictMessage(`Team number ${newTeam.team_number.trim()} already exists.`);
+          return;
+        }
+        setStatus({ type: "error", message: `Couldn't add team: ${error.message}` });
+        return;
+      }
+      setTeams((current) => sortTeams([...current, data]));
+      setNewTeam(emptyTeam);
+      setShowAddForm(false);
+      setStatus({ type: "success", message: "FTC team added." });
+    } catch (error) {
+      setStatus({ type: "error", message: `Couldn't add team: ${error.message}` });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function addSeason() {
@@ -301,6 +331,7 @@ export default function FtcTeamsPage() {
   }
 
   function startEditing(team) {
+    setTeamNumberConflictMessage("");
     setEditingId(team.id);
     setDraft({
       team_number: team.team_number || "",
@@ -313,34 +344,48 @@ export default function FtcTeamsPage() {
   function cancelEditing() {
     setEditingId(null);
     setDraft(null);
+    setTeamNumberConflictMessage("");
   }
 
   async function saveTeam(id) {
     if (!draft || saving) return;
     if (!validateTeam(draft)) return;
-    setSaving(true);
-    const { data, error } = await supabase
-      .from("ftc_teams")
-      .update({
-        team_number: draft.team_number.trim(),
-        team_name: draft.team_name.trim(),
-        description: draft.description.trim(),
-        season_name: draft.season_name.trim()
-      })
-      .eq("id", id)
-      .select(TEAM_FIELDS)
-      .maybeSingle();
-    setSaving(false);
-    if (error || !data) {
-      setStatus({
-        type: "error",
-        message: error ? `Couldn't save team: ${error.message}` : "Couldn't save team: no record was updated."
-      });
+    if (hasDuplicateTeamNumber(draft.team_number, id)) {
+      setTeamNumberConflictMessage(`Team number ${draft.team_number.trim()} already exists.`);
       return;
     }
-    setTeams((current) => sortTeams(current.map((team) => (team.id === id ? data : team))));
-    cancelEditing();
-    setStatus({ type: "success", message: "FTC team updated." });
+    setSaving(true);
+    try {
+      const { data, error } = await supabase
+        .from("ftc_teams")
+        .update({
+          team_number: draft.team_number.trim(),
+          team_name: draft.team_name.trim(),
+          description: draft.description.trim(),
+          season_name: draft.season_name.trim()
+        })
+        .eq("id", id)
+        .select(TEAM_FIELDS)
+        .maybeSingle();
+      if (error || !data) {
+        if (error && isDuplicateKeyError(error)) {
+          setTeamNumberConflictMessage(`Team number ${draft.team_number.trim()} already exists.`);
+          return;
+        }
+        setStatus({
+          type: "error",
+          message: error ? `Couldn't save team: ${error.message}` : "Couldn't save team: no record was updated."
+        });
+        return;
+      }
+      setTeams((current) => sortTeams(current.map((team) => (team.id === id ? data : team))));
+      cancelEditing();
+      setStatus({ type: "success", message: "FTC team updated." });
+    } catch (error) {
+      setStatus({ type: "error", message: `Couldn't save team: ${error.message}` });
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function deleteTeam(team) {
@@ -364,6 +409,12 @@ export default function FtcTeamsPage() {
     setStatus({ type: "success", message: "FTC team deleted." });
   }
 
+  const newTeamNumberError = teamNumberConflictMessage || (
+    hasDuplicateTeamNumber(newTeam.team_number)
+      ? `Team number ${newTeam.team_number.trim()} already exists.`
+      : ""
+  );
+
   if (page.loading || loading) return <RouteLoading />;
 
   return (
@@ -383,6 +434,7 @@ export default function FtcTeamsPage() {
             disabled={saving || importing}
             onClick={() => {
               setNewTeam(emptyTeam);
+              setTeamNumberConflictMessage("");
               setShowAddForm(true);
             }}
           >
@@ -425,6 +477,13 @@ export default function FtcTeamsPage() {
                   {teams.map((team) => {
                     const editing = editingId === team.id;
                     const anotherRowEditing = Boolean(editingId && editingId !== team.id);
+                    const editTeamNumberError = editing && (
+                      teamNumberConflictMessage || (
+                        hasDuplicateTeamNumber(draft.team_number, team.id)
+                          ? `Team number ${draft.team_number.trim()} already exists.`
+                          : ""
+                      )
+                    );
                     return (
                       <tr key={team.id} className={editing ? "is-editing" : ""}>
                         {["team_number", "team_name", "description", "season_name"].map((field) => (
@@ -438,6 +497,22 @@ export default function FtcTeamsPage() {
                                   onChange={(season_name) => setDraft((current) => ({ ...current, season_name }))}
                                   onAdd={() => { setNewSeasonName(""); setShowSeasonForm(true); }}
                                 />
+                              ) : field === "team_number" ? (
+                                <div className="ftc-team-number-field">
+                                  <input
+                                    className="task-input"
+                                    aria-label="Team number"
+                                    aria-invalid={Boolean(editTeamNumberError)}
+                                    aria-describedby={editTeamNumberError ? `edit-team-number-error-${team.id}` : undefined}
+                                    value={draft[field]}
+                                    disabled={saving}
+                                    onChange={(event) => {
+                                      setTeamNumberConflictMessage("");
+                                      setDraft((current) => ({ ...current, [field]: event.target.value }));
+                                    }}
+                                  />
+                                  {editTeamNumberError && <span id={`edit-team-number-error-${team.id}`} className="ftc-team-number-error" role="alert">{editTeamNumberError}</span>}
+                                </div>
                               ) : field === "description" ? (
                                 <textarea
                                   className="task-input ftc-team-description-input"
@@ -469,7 +544,7 @@ export default function FtcTeamsPage() {
                                   className="outreach-edit-btn outreach-save-row-btn"
                                   aria-label="Save team"
                                   title="Save team"
-                                  disabled={saving || importing}
+                                  disabled={saving || importing || Boolean(editTeamNumberError)}
                                   onClick={() => saveTeam(team.id)}
                                 >
                                   <RowActionIcon checked />
@@ -521,17 +596,25 @@ export default function FtcTeamsPage() {
       </div>
 
       {showAddForm && (
-        <div className="task-modal-overlay" onClick={(event) => event.target === event.currentTarget && setShowAddForm(false)}>
+        <div className="task-modal-overlay" onClick={(event) => event.target === event.currentTarget && !saving && setShowAddForm(false)}>
           <div className="task-modal" role="dialog" aria-modal="true" aria-labelledby="add-ftc-team-title">
             <h2 id="add-ftc-team-title">Add FTC Team</h2>
             <div className="task-add-grid">
-              <input
-                aria-label="Team number"
-                placeholder="Team number"
-                value={newTeam.team_number}
-                disabled={saving}
-                onChange={(event) => setNewTeam((current) => ({ ...current, team_number: event.target.value }))}
-              />
+              <div className="ftc-team-number-field">
+                <input
+                  aria-label="Team number"
+                  placeholder="Team number"
+                  aria-invalid={Boolean(newTeamNumberError)}
+                  aria-describedby={newTeamNumberError ? "new-team-number-error" : undefined}
+                  value={newTeam.team_number}
+                  disabled={saving}
+                  onChange={(event) => {
+                    setTeamNumberConflictMessage("");
+                    setNewTeam((current) => ({ ...current, team_number: event.target.value }));
+                  }}
+                />
+                {newTeamNumberError && <span id="new-team-number-error" className="ftc-team-number-error" role="alert">{newTeamNumberError}</span>}
+              </div>
               <input
                 aria-label="Team name"
                 placeholder="Team name"
@@ -562,7 +645,7 @@ export default function FtcTeamsPage() {
               <button type="button" className="activity-back" disabled={saving} onClick={() => setShowAddForm(false)}>
                 Cancel
               </button>
-              <button type="button" className="admin-save-btn" disabled={saving} onClick={addTeam}>
+              <button type="button" className="admin-save-btn" disabled={saving || Boolean(newTeamNumberError)} onClick={addTeam}>
                 {saving ? "Saving…" : "Add Team"}
               </button>
             </div>
